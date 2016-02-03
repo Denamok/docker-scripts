@@ -1,20 +1,23 @@
 #! /bin/bash
 #set -x
 set +x
-
 # Load tools
 source common-lib.sh
 
-# Vars
-consul_hostname=consul-machine
+ssh_user=root
+consul_hostname=Docker
+consul_ip=192.168.0.3
 consul_container_name=consul
-consul_swarm_agent_container_name=consul-swarm-agent
-swarm_master_hostname=swarm-master
+consul_swarm_agent_container_name=consul-swarm-agent 
+swarm_master_hostname=cluster1
+swarm_master_ip=192.168.0.61
 registrator_master_container_name=registrator
-swarm_agent_hostname=swarm-agent
+swarm_agent_hostname=cluster
+swarm_agent_ip[2]=192.168.0.62
+swarm_agent_ip[3]=192.168.0.63
 registrator_agent_container_name=registrator
-nb_swarm_agents=3
-driver=virtualbox
+nb_swarm_agents=2
+driver=generic
 
 # Script
 
@@ -22,7 +25,7 @@ driver=virtualbox
 print_trace "Deploy Discovery Service Consul..."
 if ! $(machine_already_exists $consul_hostname)
 then
-  docker-machine create -d=${driver} $consul_hostname
+  docker-machine create -d=${driver} --generic-ssh-user ${ssh_user} --generic-ip-address ${consul_ip} $consul_hostname
 else
   print_trace "Discovery Service Consul machine already deployed."
 fi
@@ -41,21 +44,22 @@ fi
 print_trace "Deploy Swarm master $swarm_master_hostname..."
 if ! $(machine_already_exists $swarm_master_hostname)
 then
-  docker-machine create -d ${driver} --swarm --swarm-master --swarm-discovery="consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-store=consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-advertise=eth1:2376" $swarm_master_hostname
+  docker-machine create -d ${driver} --generic-ssh-user ${ssh_user} --generic-ip-address ${swarm_master_ip} --swarm --swarm-master --swarm-discovery="consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-store=consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-advertise=eth0:2376" $swarm_master_hostname
 else
   print_trace "Swarm master $swarm_master_hostname already deployed."
 fi
 
 # Swarm agents
 print_trace "Deploy Swarm agents..."
-for i in $(seq 1 $nb_swarm_agents)
+n=$(expr $nb_swarm_agents + 1)
+for i in $(seq 2 $n)
 do
-  print_trace "Deploy Swarm agent ${swarm_agent_hostname}-${i}..."
-  if ! $(machine_already_exists ${swarm_agent_hostname}-${i})
+  print_trace "Deploy Swarm agent ${swarm_agent_hostname}${i}..."
+  if ! $(machine_already_exists ${swarm_agent_hostname}${i})
   then
-    docker-machine create -d ${driver} --swarm --swarm-discovery="consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-store=consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-advertise=eth1:2376" ${swarm_agent_hostname}-${i}
+    docker-machine create -d ${driver} --generic-ssh-user ${ssh_user} --generic-ip-address ${swarm_agent_ip[$i]} --swarm --swarm-discovery="consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-store=consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-advertise=eth0:2376" ${swarm_agent_hostname}${i}
   else
-    print_trace "Swarm agent ${swarm_agent_hostname}-${i} already deployed."
+    print_trace "Swarm agent ${swarm_agent_hostname}${i} already deployed."
   fi
 done
 
@@ -81,16 +85,17 @@ else
 fi
 
 print_trace "Deploy Registrator for Swarm agents..."
-for i in $(seq 1 $nb_swarm_agents)
+n=$(expr $nb_swarm_agents + 1)
+for i in $(seq 2 $n)
 do
-  print_trace "Deploy Registrator for Swarm agent ${swarm_agent_hostname}-${i}..."
+  print_trace "Deploy Registrator for Swarm agent ${swarm_agent_hostname}${i}..."
   # Bug fix : constraint:node not taken into account ?
-  eval $(docker-machine env ${swarm_agent_hostname}-${i})
-  if ! container_already_exists ${swarm_agent_hostname}-${i} ${registrator_agent_container_name}
+  eval $(docker-machine env ${swarm_agent_hostname}${i})
+  if ! container_already_exists ${swarm_agent_hostname}${i} ${registrator_agent_container_name}
   then
-    docker run -d --name ${registrator_agent_container_name} -e constraint:node==${swarm_agent_hostname}-${i} --net=host --volume=/var/run/docker.sock:/tmp/docker.sock gliderlabs/registrator:latest consul://$(docker-machine ip consul-machine):8500
+    docker run -d --name ${registrator_agent_container_name} -e constraint:node==${swarm_agent_hostname}${i} --net=host --volume=/var/run/docker.sock:/tmp/docker.sock gliderlabs/registrator:latest consul://$(docker-machine ip $consul_hostname):8500
   else
-    print_trace "Registrator already deployed for Swarm agent ${swarm_agent_hostname}-${i}."
+    print_trace "Registrator already deployed for Swarm agent ${swarm_agent_hostname}${i}."
   fi
 
 done
