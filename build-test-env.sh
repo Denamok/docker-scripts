@@ -1,6 +1,6 @@
 #! /bin/bash
-#set -x
-set +x
+set -x
+#set +x
 
 # Load tools
 source common-lib.sh
