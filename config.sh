@@ -1,0 +1,16 @@
+ssh_user=root
+consul_hostname=consul-machine
+consul_ip=10.63.1.152
+consul_container_name=consul
+consul_swarm_agent_container_name=consul-swarm-agent
+swarm_master_hostname=cluster1
+swarm_master_ip=10.63.1.151
+registrator_master_container_name=registrator
+swarm_agent_hostname=cluster
+swarm_agent_ip[2]=10.63.1.155
+#swarm_agent_ip[3]=10.63.1.156
+#swarm_agent_ip[4]=10.63.1.158
+registrator_agent_container_name=registrator
+nb_swarm_agents=3
+driver=generic
+#driver=virtualbox

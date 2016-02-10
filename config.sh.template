@@ -1,0 +1,14 @@
+ssh_user=root
+consul_hostname=Docker
+consul_ip=192.168.0.3
+consul_container_name=consul
+consul_swarm_agent_container_name=consul-swarm-agent
+swarm_master_hostname=cluster1
+swarm_master_ip=192.168.0.61
+registrator_master_container_name=registrator
+swarm_agent_hostname=cluster
+swarm_agent_ip[2]=192.168.0.62
+swarm_agent_ip[3]=192.168.0.63
+registrator_agent_container_name=registrator
+nb_swarm_agents=2
+driver=generic

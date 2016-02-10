@@ -35,3 +35,8 @@ container_already_exists(){
  return 1
 }
 
+ssh_key_already_exists(){
+ ip=$1
+ ssh -q -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=no root@$1 'ls' || return 1
+ return 0
+}

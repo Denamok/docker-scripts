@@ -1,23 +1,10 @@
 #! /bin/bash
 #set -x
 set +x
-# Load tools
-source common-lib.sh
 
-ssh_user=root
-consul_hostname=Docker
-consul_ip=192.168.0.3
-consul_container_name=consul
-consul_swarm_agent_container_name=consul-swarm-agent 
-swarm_master_hostname=cluster1
-swarm_master_ip=192.168.0.61
-registrator_master_container_name=registrator
-swarm_agent_hostname=cluster
-swarm_agent_ip[2]=192.168.0.62
-swarm_agent_ip[3]=192.168.0.63
-registrator_agent_container_name=registrator
-nb_swarm_agents=2
-driver=generic
+# Load tools
+source config.sh
+source common-lib.sh
 
 # Script
 
@@ -25,7 +12,12 @@ driver=generic
 print_trace "Deploy Discovery Service Consul..."
 if ! $(machine_already_exists $consul_hostname)
 then
-  docker-machine create -d=${driver} --generic-ssh-user ${ssh_user} --generic-ip-address ${consul_ip} $consul_hostname
+  if [ "$driver" != "generic" ]
+  then
+    docker-machine create -d=${driver} $consul_hostname
+  else
+    docker-machine create -d=${driver} --generic-ssh-user ${ssh_user} --generic-ip-address ${consul_ip} $consul_hostname
+  fi
 else
   print_trace "Discovery Service Consul machine already deployed."
 fi
@@ -44,7 +36,12 @@ fi
 print_trace "Deploy Swarm master $swarm_master_hostname..."
 if ! $(machine_already_exists $swarm_master_hostname)
 then
-  docker-machine create -d ${driver} --generic-ssh-user ${ssh_user} --generic-ip-address ${swarm_master_ip} --swarm --swarm-master --swarm-discovery="consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-store=consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-advertise=eth0:2376" $swarm_master_hostname
+  if [ "$driver" != "generic" ]
+  then
+    docker-machine create -d ${driver} --swarm --swarm-master --swarm-discovery="consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-store=consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-advertise=eth0:2376" $swarm_master_hostname
+  else
+    docker-machine create -d ${driver} --generic-ssh-user ${ssh_user} --generic-ip-address ${swarm_master_ip} --swarm --swarm-master --swarm-discovery="consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-store=consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-advertise=eth0:2376" $swarm_master_hostname
+  fi
 else
   print_trace "Swarm master $swarm_master_hostname already deployed."
 fi
@@ -57,7 +54,12 @@ do
   print_trace "Deploy Swarm agent ${swarm_agent_hostname}${i}..."
   if ! $(machine_already_exists ${swarm_agent_hostname}${i})
   then
-    docker-machine create -d ${driver} --generic-ssh-user ${ssh_user} --generic-ip-address ${swarm_agent_ip[$i]} --swarm --swarm-discovery="consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-store=consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-advertise=eth0:2376" ${swarm_agent_hostname}${i}
+    if [ "$driver" != "generic" ]
+    then
+      docker-machine create -d ${driver} --swarm --swarm-discovery="consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-store=consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-advertise=eth0:2376" ${swarm_agent_hostname}${i}
+    else
+      docker-machine create -d ${driver} --generic-ssh-user ${ssh_user} --generic-ip-address ${swarm_agent_ip[$i]} --swarm --swarm-discovery="consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-store=consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-advertise=eth0:2376" ${swarm_agent_hostname}${i}
+    fi
   else
     print_trace "Swarm agent ${swarm_agent_hostname}${i} already deployed."
   fi
