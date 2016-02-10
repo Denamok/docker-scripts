@@ -14,3 +14,4 @@ registrator_agent_container_name=registrator
 nb_swarm_agents=3
 driver=generic
 #driver=virtualbox
+virtualbox-memory=1024

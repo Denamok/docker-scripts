@@ -6,6 +6,13 @@ set +x
 source config.sh
 source common-lib.sh
 
+# Custom parameters
+memory=""
+if [ "$driver" == "virtualbox" ] && [ ! -z "$virtualbox-memory" ]
+then
+  memory="--virtualbox-memory $virtualbox-memory"
+fi
+
 # Script
 
 # Discovery Service Consul 
@@ -14,7 +21,7 @@ if ! $(machine_already_exists $consul_hostname)
 then
   if [ "$driver" != "generic" ]
   then
-    docker-machine create -d=${driver} $consul_hostname
+    docker-machine create -d=${driver} ${memory} $consul_hostname
   else
     docker-machine create -d=${driver} --generic-ssh-user ${ssh_user} --generic-ip-address ${consul_ip} $consul_hostname
   fi
@@ -38,7 +45,7 @@ if ! $(machine_already_exists $swarm_master_hostname)
 then
   if [ "$driver" != "generic" ]
   then
-    docker-machine create -d ${driver} --swarm --swarm-master --swarm-discovery="consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-store=consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-advertise=eth0:2376" $swarm_master_hostname
+    docker-machine create -d ${driver} ${memory} --swarm --swarm-master --swarm-discovery="consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-store=consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-advertise=eth0:2376" $swarm_master_hostname
   else
     docker-machine create -d ${driver} --generic-ssh-user ${ssh_user} --generic-ip-address ${swarm_master_ip} --swarm --swarm-master --swarm-discovery="consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-store=consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-advertise=eth0:2376" $swarm_master_hostname
   fi
@@ -56,7 +63,7 @@ do
   then
     if [ "$driver" != "generic" ]
     then
-      docker-machine create -d ${driver} --swarm --swarm-discovery="consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-store=consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-advertise=eth0:2376" ${swarm_agent_hostname}${i}
+      docker-machine create -d ${driver} ${memory} --swarm --swarm-discovery="consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-store=consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-advertise=eth0:2376" ${swarm_agent_hostname}${i}
     else
       docker-machine create -d ${driver} --generic-ssh-user ${ssh_user} --generic-ip-address ${swarm_agent_ip[$i]} --swarm --swarm-discovery="consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-store=consul://$(docker-machine ip $consul_hostname):8500" --engine-opt="cluster-advertise=eth0:2376" ${swarm_agent_hostname}${i}
     fi

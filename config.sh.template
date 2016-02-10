@@ -12,3 +12,4 @@ swarm_agent_ip[3]=192.168.0.63
 registrator_agent_container_name=registrator
 nb_swarm_agents=2
 driver=generic
+virtualbox-memory=1024
