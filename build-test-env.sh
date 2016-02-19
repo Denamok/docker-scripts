@@ -8,9 +8,9 @@ source common-lib.sh
 
 # Custom parameters
 memory=""
-if [ "$driver" == "virtualbox" ] && [ ! -z "$virtualbox-memory" ]
+if [ "$driver" == "virtualbox" ] && [ ! -z "${virtualbox_memory}" ]
 then
-  memory="--virtualbox-memory $virtualbox-memory"
+  memory="--virtualbox-memory ${virtualbox_memory}"
 fi
 
 # Script

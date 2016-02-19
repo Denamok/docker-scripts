@@ -4,8 +4,9 @@ set +x
 
 # Load configuration
 source config.sh
+source common-lib.sh
 
-if [ "$driver" != "generic" ]
+if [ "$driver" == "generic" ]
 then
    print_trace "Driver is generic : this operation is not supported."
    exit 0
